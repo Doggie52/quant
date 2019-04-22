@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+
 using QuantConnect.Logging;
 using QuantConnect.Util;
+
 using RestSharp;
 
 namespace QuantConnect.Lean.Engine.DataFeeds
