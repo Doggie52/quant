@@ -210,11 +210,16 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 		public static void Main( string[] args )
 		{
 			var d = new Downloader();
-			d.Initialize( "token here", "../" );
-			var symbol = QuantConnect.Symbol.Create( "JP225USD", SecurityType.Cfd, Market.Oanda );
-			d.DownloadData( symbol, Resolution.Minute, new DateTime( 2018, 1, 17, 0, 0, 0, 0, System.DateTimeKind.Utc ) );
+
+			d.Initialize( "token here", "Data" );
+
+			var tickers = new string[] { "EURCHF", "EURGBP", "EURJPY", "EURUSD", "GBPCHF", "GBPJPY", "GBPUSD", "USDCAD", "USDCHF", "USDJPY", "GBPCAD" };
+
+			foreach ( var ticker in tickers ) {
+				var symbol = QuantConnect.Symbol.Create( ticker, SecurityType.Forex, Market.Oanda );
+
+				d.DownloadData( symbol, Resolution.Hour, new DateTime( 1970, 1, 1 ) );
+			}
 		}
 	}
-
-
 }
