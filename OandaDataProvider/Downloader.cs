@@ -24,45 +24,49 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 			_token = token;
 			_dataPath = dataPath;
 		}
-		public bool DownloadData( Symbol symbol, Resolution resolution, DateTime date )
+
+		public bool DownloadData( Symbol symbol, Resolution resolution, DateTime fromDate )
 		{
 			if ( resolution == Resolution.Hour ) {
-				return DownloadHourData( symbol, resolution, date );
+				return DownloadHourData( symbol, resolution, fromDate );
 			}
 			string r = "S5";
 			string filename = "";
 			string s = symbol.ID.Symbol.Insert( symbol.ID.Symbol.Length - 3, "_" );
-			DateTime todate = date.ToUniversalTime().AddDays( 1d );
 			string url = null;
+			DateTime toDate;
 			switch ( resolution ) {
 				case Resolution.Minute:
 					r = "M1";
-					filename = string.Format( "{0}{1:D2}{2:D2}_{3}_minute_quote.csv", new object[] { date.Year, date.Month, date.Day, symbol.ID.Symbol } );
-					url = string.Format( _url, s, _price, ToUnixTimestamp( date.ToUniversalTime() ), ToUnixTimestamp( todate ), r );
+					filename = string.Format( "{0}{1:D2}{2:D2}_{3}_minute_quote.csv", new object[] { fromDate.Year, fromDate.Month, fromDate.Day, symbol.ID.Symbol } );
+					toDate = fromDate.ToUniversalTime().AddDays( 1d );
+					url = string.Format( _url, s, _price, ToUnixTimestamp( fromDate.ToUniversalTime() ), ToUnixTimestamp( toDate ), r );
 
 					break;
 				case Resolution.Second:
 					r = "S5";
-					filename = string.Format( "{0}{1:D2}{2:D2}_{3}_second_quote.csv", new object[] { date.Year, date.Month, date.Day, symbol.ID.Symbol } );
-					url = string.Format( _url, s, _price, ToUnixTimestamp( date.ToUniversalTime() ), ToUnixTimestamp( todate ), r );
+					filename = string.Format( "{0}{1:D2}{2:D2}_{3}_second_quote.csv", new object[] { fromDate.Year, fromDate.Month, fromDate.Day, symbol.ID.Symbol } );
+					toDate = fromDate.ToUniversalTime().AddDays( 1d );
+					url = string.Format( _url, s, _price, ToUnixTimestamp( fromDate.ToUniversalTime() ), ToUnixTimestamp( toDate ), r );
 					break;
 				case Resolution.Tick:
 					r = "S5";
-					filename = string.Format( "{0}{1:D2}{2:D2}_{3}_tick_quote.csv", new object[] { date.Year, date.Month, date.Day, symbol.ID.Symbol } );
-					url = string.Format( _url, s, _price, ToUnixTimestamp( date.ToUniversalTime() ), ToUnixTimestamp( todate ), r );
+					filename = string.Format( "{0}{1:D2}{2:D2}_{3}_tick_quote.csv", new object[] { fromDate.Year, fromDate.Month, fromDate.Day, symbol.ID.Symbol } );
+					toDate = fromDate.ToUniversalTime().AddDays( 1d );
+					url = string.Format( _url, s, _price, ToUnixTimestamp( fromDate.ToUniversalTime() ), ToUnixTimestamp( toDate ), r );
 					break;
-				case Resolution.Hour: {
-						r = "H1";
-						filename = string.Format( "{0}.csv", symbol.ID.Symbol );
-						DateTime _d = new DateTime( 2004, 1, 1 ).ToUniversalTime();
-						url = string.Format( _url, s, _price, ToUnixTimestamp( _d ), ToUnixTimestamp( DateTime.UtcNow ), r );
-						break;
-					}
+				//case Resolution.Hour: {
+				//		r = "H1";
+				//		filename = string.Format( "{0}.csv", symbol.ID.Symbol );
+				//		toDate = DateTime.UtcNow;
+				//		url = string.Format( _url, s, _price, ToUnixTimestamp( fromDate.ToUniversalTime() ), ToUnixTimestamp( toDate ), r );
+				//		break;
+				//	}
 				case Resolution.Daily: {
 						r = "D";
 						filename = string.Format( "{0}.csv", symbol.ID.Symbol );
-						DateTime _d = DateTime.UtcNow.AddDays( -5000 ).ToUniversalTime();
-						url = string.Format( _url, s, _price, ToUnixTimestamp( _d ), ToUnixTimestamp( DateTime.UtcNow ), r );
+						toDate = DateTime.UtcNow.Date.AddDays( -1 );
+						url = string.Format( _url, s, _price, ToUnixTimestamp( fromDate.ToUniversalTime() ), ToUnixTimestamp( toDate ), r );
 						break;
 
 					}
@@ -81,11 +85,11 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 			string json = response.Content;
 			if ( response.ErrorException == null ) {
 				// Save csv in same folder heirarchy as Lean
-				var path = Path.Combine( _dataPath, LeanData.GenerateRelativeZipFilePath( symbol.Value, symbol.ID.SecurityType, symbol.ID.Market, date, resolution ) );
+				var path = Path.Combine( _dataPath, LeanData.GenerateRelativeZipFilePath( symbol.Value, symbol.ID.SecurityType, symbol.ID.Market, fromDate, resolution ) );
 
 				// Make sure the directory exist before writing
 				( new FileInfo( path ) ).Directory.Create();
-				var csv = resolution == Resolution.Daily || resolution == Resolution.Hour ? JSonToCSV( json ) : JSonToCSV( date, json );
+				var csv = resolution == Resolution.Daily || resolution == Resolution.Hour ? JSonToCSV( json ) : JSonToCSV( fromDate, json );
 				if ( csv == null || csv.Length < 1 ) {
 					return false;
 				}
@@ -96,21 +100,20 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 			return false;
 		}
 
-		public bool DownloadHourData( Symbol symbol, Resolution resolution, DateTime date )
+		public bool DownloadHourData( Symbol symbol, Resolution resolution, DateTime fromDate )
 		{
 			string r = "S5";
 			string filename = "";
 			string s = symbol.ID.Symbol.Insert( symbol.ID.Symbol.Length - 3, "_" );
-			DateTime todate = date.ToUniversalTime().AddDays( 1d );
+			DateTime toDate = DateTime.UtcNow.Date.AddDays( -1 );
 			string url = null;
 			r = "H1";
-			filename = string.Format( "{0}.csv", symbol.ID.Symbol );
-			DateTime _d = new DateTime( 2004, 1, 1 ).ToUniversalTime();
+			filename = string.Format( "{0}.csv", symbol.ID.Symbol.ToLower() );
+			DateTime _d = fromDate.ToUniversalTime();
 			string csv = "";
-			while ( _d < DateTime.UtcNow ) {
-				DateTime _end = _d.AddHours( 5000 );
+			while ( _d < toDate ) {
+				DateTime _end = _d.AddHours( 5000 ) > toDate ? toDate : _d.AddHours( 5000 );
 				url = string.Format( _url, s, _price, ToUnixTimestamp( _d ), ToUnixTimestamp( _end ), r );
-
 
 				RestClient client = new RestClient();
 				var auth = "Bearer " + _token;
@@ -124,7 +127,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 				IRestResponse response = client.Execute( request );
 				string json = response.Content;
 				if ( response.ErrorException == null ) {
-					var curcsv = resolution == Resolution.Daily || resolution == Resolution.Hour ? JSonToCSV( json ) : JSonToCSV( date, json );
+					var curcsv = resolution == Resolution.Daily || resolution == Resolution.Hour ? JSonToCSV( json ) : JSonToCSV( fromDate, json );
 					if ( curcsv != null && curcsv.Length > 0 ) {
 						csv += curcsv;
 					}
@@ -132,9 +135,10 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 				}
 				_d = _end;
 			}
+
 			if ( csv.Length > 0 ) {
 				// Save csv in same folder heirarchy as Lean
-				var path = Path.Combine( _dataPath, LeanData.GenerateRelativeZipFilePath( symbol.Value, symbol.ID.SecurityType, symbol.ID.Market, date, resolution ) );
+				var path = Path.Combine( _dataPath, LeanData.GenerateRelativeZipFilePath( symbol.Value, symbol.ID.SecurityType, symbol.ID.Market, fromDate, resolution ) );
 
 				// Make sure the directory exist before writing
 				( new FileInfo( path ) ).Directory.Create();
@@ -156,12 +160,12 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 						streamWriter.Write( content );
 					}
 
-					var downloadedFile = archive.CreateEntry( "originaldownload.json" );
+					//var downloadedFile = archive.CreateEntry( "originaldownload.json" );
 
-					using ( var entryStream = downloadedFile.Open() )
-					using ( var streamWriter = new StreamWriter( entryStream ) ) {
-						streamWriter.Write( originaljson );
-					}
+					//using ( var entryStream = downloadedFile.Open() )
+					//using ( var streamWriter = new StreamWriter( entryStream ) ) {
+					//	streamWriter.Write( originaljson );
+					//}
 				}
 
 				using ( var fileStream = new FileStream( path, FileMode.Create ) ) {
