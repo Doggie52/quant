@@ -15,9 +15,6 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 		private string _token;
 		private string _dataPath;
 		private string _price = "BA";
-		public Downloader()
-		{
-		}
 
 		public void Initialize( string token, string dataPath )
 		{
@@ -93,7 +90,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 				if ( csv == null || csv.Length < 1 ) {
 					return false;
 				}
-				CreateZip( path, filename, csv, json );
+				CreateZip( path, filename, csv );
 				return true;
 			}
 			Log.Trace( string.Format( "Error downloading {0}", response.ErrorException ) );
@@ -142,14 +139,20 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 
 				// Make sure the directory exist before writing
 				( new FileInfo( path ) ).Directory.Create();
-				CreateZip( path, filename, csv, "" );
+				CreateZip( path, filename, csv );
 				return true;
 			}
 			return false;
 
 		}
 
-		private void CreateZip( string path, string name, string content, string originaljson )
+		/// <summary>
+		/// Creates a zip containing a csv file with data.
+		/// </summary>
+		/// <param name="path">Full path (including file name) of zip file to create.</param>
+		/// <param name="name">Full filename of csv file to create inside the zip file.</param>
+		/// <param name="content">Content to populate the csv file with.</param>
+		public void CreateZip( string path, string name, string content )
 		{
 			using ( var memoryStream = new MemoryStream() ) {
 				using ( var archive = new ZipArchive( memoryStream, ZipArchiveMode.Create, true ) ) {
@@ -159,13 +162,6 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 					using ( var streamWriter = new StreamWriter( entryStream ) ) {
 						streamWriter.Write( content );
 					}
-
-					//var downloadedFile = archive.CreateEntry( "originaldownload.json" );
-
-					//using ( var entryStream = downloadedFile.Open() )
-					//using ( var streamWriter = new StreamWriter( entryStream ) ) {
-					//	streamWriter.Write( originaljson );
-					//}
 				}
 
 				using ( var fileStream = new FileStream( path, FileMode.Create ) ) {
@@ -174,6 +170,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 				}
 			}
 		}
+
 		private string JSonToCSV( string json )
 		{
 
@@ -189,6 +186,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 			}
 			return content;
 		}
+
 		private string JSonToCSV( DateTime date, string json )
 		{
 
