@@ -102,7 +102,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 			string r = "S5";
 			string filename = "";
 			string s = symbol.ID.Symbol.Insert( symbol.ID.Symbol.Length - 3, "_" );
-			DateTime toDate = DateTime.UtcNow.Date.AddDays( -1 );
+			DateTime toDate = DateTime.UtcNow.AddHours( -2 );
 			string url = null;
 			r = "H1";
 			filename = string.Format( "{0}.csv", symbol.ID.Symbol.ToLower() );
