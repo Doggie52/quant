@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 
 using QuantConnect.Logging;
 using QuantConnect.Util;
@@ -217,11 +218,11 @@ namespace QuantConnect.Lean.Engine.DataFeeds
 
 			var tickers = new string[] { "EURCHF", "EURGBP", "EURJPY", "EURUSD", "GBPCHF", "GBPJPY", "GBPUSD", "USDCAD", "USDCHF", "USDJPY", "GBPCAD" };
 
-			foreach ( var ticker in tickers ) {
+			Parallel.ForEach( tickers, ( ticker ) => {
 				var symbol = QuantConnect.Symbol.Create( ticker, SecurityType.Forex, Market.Oanda );
 
-				d.DownloadData( symbol, Resolution.Hour, new DateTime( 1970, 1, 1 ) );
-			}
+				d.DownloadData( symbol, Resolution.Hour, new DateTime( 2008, 1, 1 ) );
+			} );
 		}
 	}
 }
